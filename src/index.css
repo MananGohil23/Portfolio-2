@@ -148,6 +148,46 @@
 }
 
 /* ------------------------------------------------------------------ *
+ *  Scrollbar — chunky torn-paper strip
+ * ------------------------------------------------------------------ */
+/* Firefox */
+* {
+  scrollbar-width: auto;
+  scrollbar-color: var(--color-coral) var(--color-paper-2);
+}
+
+/* Chromium / WebKit */
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--color-paper-2);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.3'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+  border-left: 2px solid var(--color-ink);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--color-coral);
+  border: 2px solid var(--color-paper-2);
+  box-shadow: inset 0 0 0 2px var(--color-ink);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-mustard);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--color-ink);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--color-paper-2);
+}
+
+/* ------------------------------------------------------------------ *
  *  Motion
  * ------------------------------------------------------------------ */
 @keyframes marquee {

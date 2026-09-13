@@ -26,12 +26,12 @@ Three ideas carry the whole project:
 
 1. **One data file, dumb components.** All text, links, images and accent colours live in `src/data/resume.js`. Section components just read from it and render. To change the site's content you almost never touch a `.jsx` file.
 
-2. **A reusable "paper craft" CSS layer.** Torn edges, grain, tape and stickers are plain CSS classes (defined in `src/index.css`) plus three shared SVG filters (defined once in `SvgDefs.jsx`). Components compose those classes rather than inventing their own styling.
+2. **A reusable "paper craft" CSS layer.** Torn edges, grain, tape and stamps are plain CSS classes (defined in `src/index.css`) plus three shared SVG filters (defined once in `SvgDefs.jsx`). Components compose those classes rather than inventing their own styling.
 
-3. **Content is placed on layered sheets.** Most visual elements are a `PaperCard`: an absolutely-positioned torn-paper background with a crisp content layer on top. The displacement filter that makes edges ragged is applied **only to the background layer**, so text is never warped.
+3. **Content is placed on layered sheets.** The visual primitives (`PaperCard`, `Sticker`, `Marquee`) all use the same trick: an absolutely-positioned torn-paper background layer with a crisp content layer on top. The displacement filter that makes edges ragged is applied **only to the background layer**, so text is never warped.
 
 ```
-resume.js  ──►  Section component  ──►  PaperCard / Carousel / Marquee
+resume.js  ──►  Section component  ──►  PaperCard / Sticker / Carousel / Marquee
  (data)          (structure)              (visual primitives)
                                           ▲
                               index.css + SvgDefs  (paper craft system)
@@ -54,6 +54,7 @@ Portfolio/
 │  ├─ edudash1..4.png         #   project screenshots (carousels)
 │  ├─ sugar1..4.png
 │  └─ express1..2.png
+├─ _originals/               # source assets kept out of the build (full-res portrait)
 └─ src/
    ├─ main.jsx                # React entry -> renders <App/> in StrictMode
    ├─ App.jsx                 # page composition (order of sections)
@@ -63,6 +64,7 @@ Portfolio/
    └─ components/
       ├─ SvgDefs.jsx          # torn-edge filters + doodle icons
       ├─ PaperCard.jsx        # torn sheet of paper w/ crisp content
+      ├─ Sticker.jsx          # torn-paper label (tone-coloured)
       ├─ Reveal.jsx           # scroll-in animation wrapper
       ├─ Slot.jsx             # "add your input" placeholder renderer
       ├─ SectionHeading.jsx    # shared section title block
@@ -152,7 +154,7 @@ If the result is empty, the project shows a `<Slot>` placeholder instead of a ca
 
 ## 6. The design system — `src/index.css`
 
-This file is the visual heart of the project. It has four parts.
+This file is the visual heart of the project. It has five parts.
 
 ### 6.1 Design tokens (`@theme`)
 Tailwind v4's `@theme` block turns CSS custom properties into real utilities. Defining `--color-coral: #e4572e` gives you `bg-coral`, `text-coral`, `border-coral`, `bg-coral/50`, etc. **automatically**. Same for fonts (`--font-display` → `font-display`).
@@ -176,14 +178,17 @@ These are the composable classes used everywhere:
 | `.paper-2` | a slightly darker sheet tone |
 | `.grain::after` | paints grain **on top** of an element (multiply blend, low opacity) |
 | `.torn-sm` / `.torn-md` / `.torn-lg` | applies an SVG displacement filter + drop shadow (ragged edges) |
-| `.torn-flat` | torn filter with **no** shadow (for inline stickers/stamps) |
+| `.torn-flat` | torn filter with **no** shadow (for background-only layers such as the nav strip) |
 | `.tape` | translucent yellow washi tape with soft ends (CSS mask) |
-| `.sticker` | inline torn label (paper bg, small shadow) |
 | `.stamp` | bold bordered button with a hard offset shadow |
 | `.ink-underline` | coral scribble underline drawn with a background SVG |
 | `.stitch-border` | dashed "stitched" border |
 
 The grain and paper textures are inline **data-URI SVGs** using `feTurbulence` noise — no image files required.
+
+> **CSS layers matter here.** `.paper` and `.paper-2` live inside `@layer components`, while Tailwind's utilities live in `@layer utilities`. Because the utilities layer is declared later, a `bg-*` utility on the same element overrides the paper colour — which is how `Sticker` recolours a `.paper` layer with `tone` (e.g. `bg-teal`). If these rules were left **unlayered** they would beat the utilities and every `bg-*` would silently do nothing. Keep paper/component classes in `@layer components`.
+
+> There is **no `.sticker` CSS class** anymore — stickers are the `Sticker` React component (§8), because the old single-element version applied the displacement filter to its own text and warped it.
 
 ### 6.4 Motion
 Keyframes + utility classes: `.animate-marquee`, `.animate-floaty`, `.animate-drift`, `.animate-wiggle`, and the scroll-reveal classes `.reveal` / `.reveal.is-visible`.
@@ -194,6 +199,14 @@ The reveal uses two CSS variables so each element can have its own timing/tilt:
 
 A `@media (prefers-reduced-motion: reduce)` block disables all looping animations and makes reveals instant. Respect it when adding new motion.
 
+### 6.5 Scrollbar
+The page scrollbar is themed as a chunky torn-paper strip near the end of `index.css`:
+
+- A `*` rule sets `scrollbar-color: coral paper-2` for **Firefox** (Firefox only accepts colours, not custom widths).
+- `::-webkit-scrollbar*` pseudo-elements style **Chromium/WebKit**: a 16px gutter, a `paper-2` track with the grain texture and an ink left edge, a coral thumb with a paper border and inset ink outline, mustard on hover and ink while dragging.
+
+To restyle it, change the colour tokens there (they reference the same `--color-*` variables, so a palette change flows through automatically).
+
 ---
 
 ## 7. SVG filters & doodles — `src/components/SvgDefs.jsx`
@@ -203,7 +216,7 @@ Rendered once in `App.jsx`. It contains:
 - **Three filters** with `<feTurbulence>` + `<feDisplacementMap>`: `#torn-sm`, `#torn-md`, `#torn-lg`. Each filter randomly displaces pixels, which turns a straight rectangle edge into a ragged tear. Increasing `scale` and lowering `baseFrequency` = bigger, more dramatic tears. To make a new tear size, add a filter here **and** a matching `.torn-*` class in `index.css`.
 - **Doodle components**: `DoodleArrow`, `DoodleStar`, `DoodleSquiggle`, `DoodleSplash`, `Scribble`. All are `currentColor` SVGs, so you colour them with a normal `text-*` class and size with `w-*`.
 
-> **Key technique:** the filter is only ever applied to a *background layer*, never to a container holding text. A displacement filter on text would make it wavy/blurry. This is why `PaperCard` separates background from content.
+> **Key technique:** the filter is only ever applied to a *background layer*, never to a container holding text. A displacement filter on text would make it wavy/blurry. This is why `PaperCard` and `Sticker` separate the paper layer from their content.
 
 ---
 
@@ -225,6 +238,25 @@ Structure it renders:
 4. **Content layer** — `relative z-10`, so it always sits above the paper and tape.
 
 Props: `torn` (`sm|md|lg|flat`), `tone` (`base|soft`), `tilt` (deg), `tapes[]`, `as` (element type), plus passthrough `className`/`style`/rest.
+
+### `Sticker.jsx`
+Torn-paper label (a small `PaperCard`-style chip). Used for tags, periods, badges and social links across the site.
+
+```jsx
+<Sticker tone="teal" className="absolute -top-3 -right-2 -rotate-6 text-xs font-bold uppercase">
+  CSE · Data Science
+</Sticker>
+```
+
+Structure it renders:
+1. Outer `<Tag>` (default `span`, but `as="a"` for links) gets your `className` plus `inline-block`. `inline-block` matters: transforms (e.g. `-rotate-6`, `absolute`) don't apply to `display: inline` elements.
+2. Inner `relative inline-flex` carries padding and typography and provides the positioning context.
+3. **Paper layer** — `paper torn-sm absolute inset-0` + the tone's `bg-*`. This is what gets the displacement filter.
+4. **Content layer** — `relative z-10`, holding the text.
+
+Props: `tone` (`paper|ink|coral|mustard|cobalt|teal|plum`), `className` (outer: position/rotation/size), `layerClassName` (paper layer: borders, opacity), `as`, plus passthrough rest.
+
+> **Why this replaced the old `.sticker` class:** the CSS version applied `.torn-flat` to the element itself, so the displacement filter smeared the text, and its unlayered `background`/`color` overrode the accent `bg-*` utilities. Splitting the torn layer from the text (and moving `.paper` into `@layer components`) fixed both. Never put a `.torn-*` class on an element that contains text.
 
 ### `Reveal.jsx`
 Scroll-in wrapper using `IntersectionObserver` (threshold `0.15`, unobserve after firing so it animates once).
@@ -267,7 +299,7 @@ Project image carousel, styled to match the paper theme.
 Order of sections is defined in `App.jsx`, not in each component.
 
 ### `Nav.jsx`
-Fixed header over a paper strip (`.paper .torn-flat`). Adds a shadow/pacity shift after scrolling `>24px` (passive scroll listener, cleaned up on unmount). Shows the `MG` stamp logo, desktop links from `nav`, a Résumé download button (or Slot if the file is `TODO`), and a mobile `≡` toggle that opens a torn paper menu.
+Fixed header over a paper strip (`.paper .torn-flat`). Adds a shadow/pacity shift after scrolling `>24px` (passive scroll listener, cleaned up on unmount). Shows the `MG` logo as a plain `.stamp` (no torn filter, so the letters stay crisp), desktop links from `nav`, a Résumé download button (or Slot if the file is `TODO`), and a mobile `≡` toggle. The mobile menu is a `PaperCard` rather than a filtered panel, so the link text isn't warped.
 
 ### `Hero.jsx`
 Landing section. Background doodles (`DoodleSplash`, `DoodleStar`) float/drift; the name is huge `font-display` with a `Scribble` underline; `stats` render as rotated stickers. The portrait uses `profile.photo` inside a `PaperCard` polaroid; if `photo` is a placeholder it shows a `<Slot>`.
@@ -276,16 +308,16 @@ Landing section. Background doodles (`DoodleSplash`, `DoodleStar`) float/drift; 
 Bio paragraphs from `profile.bio` on a large torn sheet, plus location/class/availability stickers and an education list from `education`. A decorative `DoodleStar` sits at the top-left; the bio text is `relative z-10` so it renders **above** the star (the star peeks out from behind the text).
 
 ### `Projects.jsx`
-Maps `projects` to `ProjectCard`. Each card alternates tilt/tape side (`index % 2`), renders the `Carousel` (or a Slot when there are no images) inside a bordered `aspect-[16/10]` frame, then the title/subtitle, bullet points, tag stickers, and conditional `live` / `repo` links (only rendered when the value exists). Accent classes come from the local `ACCENT` map.
+Maps `projects` to `ProjectCard`. Each card alternates tilt/tape side (`index % 2`), renders the `Carousel` (or a Slot when there are no images) inside a bordered `aspect-[16/10]` frame, then the title/subtitle, bullet points, tag `<Sticker>` chips, and conditional `live` / `repo` links (only rendered when the value exists). Accent classes come from the local `ACCENT` map.
 
 ### `Experience.jsx`
 Vertical timeline. A dashed spine runs down the centre on desktop; each entry alternates left/right (`index % 2`) with a rotated diamond node coloured by `accent`, and on the left column the bullets mirror to right-aligned.
 
 ### `Skills.jsx`
-Maps `skillGroups` to `PaperCard`s; each group has an accent bar, a `DoodleSquiggle`, and a wrap of sticker items.
+Maps `skillGroups` to `PaperCard`s; each group has an accent bar, a `DoodleSquiggle`, and a wrap of `<Sticker>` items.
 
 ### `Contact.jsx`
-Centered `SectionHeading` plus a taped `PaperCard` with the email/phone CTA stamps and LinkedIn / GitHub / X sticker links, with doodles in the corners. The X link falls back to a `Slot` if `contact.twitter` is `TODO`.
+Centered `SectionHeading` plus a taped `PaperCard` with the email/phone CTA stamps and LinkedIn / GitHub / X `<Sticker as="a">` links, with doodles in the corners. The X link falls back to a `Slot` if `contact.twitter` is `TODO`.
 
 ### `Footer.jsx`
 Paper footer with the name in `font-hand`, a short note, quick links, and a dynamic copyright year.
@@ -350,6 +382,10 @@ When adding interactive elements, follow these patterns (real `<button>`, labels
 **Add a skill / experience / education entry** → append to the matching array; `accent` is optional but should be one of the five keys.
 
 **Recolour the site** → change the `--color-*` tokens in `src/index.css` (`@theme`).
+
+**Use a sticker** → `<Sticker tone="coral">…</Sticker>`. Tones live in the `TONE` map in `Sticker.jsx`; add an entry there to introduce a new one. Pass position/rotation/size via `className`, and borders/opacity via `layerClassName`.
+
+**Restyle the scrollbar** → the scrollbar block in `index.css`; it references the same colour tokens, so recolouring the theme updates it too.
 
 **Change marquee speed / direction** → `.animate-marquee` duration in `index.css`; direction via `tilt` in `App.jsx`.
 
