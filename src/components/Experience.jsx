@@ -2,6 +2,7 @@ import { experience } from '../data/resume'
 import PaperCard from './PaperCard'
 import Reveal from './Reveal'
 import SectionHeading from './SectionHeading'
+import Sticker from './Sticker'
 
 const DOT = {
   coral: 'bg-coral',
@@ -47,9 +48,9 @@ export default function Experience() {
                     className={`pl-12 lg:w-1/2 lg:pl-0 ${right ? 'lg:ml-auto lg:pl-14' : 'lg:pr-14 lg:text-right'}`}
                   >
                     <PaperCard torn="md" className="p-6">
-                      <span className="sticker torn-flat -rotate-2 bg-ink text-[0.7rem] font-bold text-paper uppercase">
+                      <Sticker tone="ink" className="-rotate-2 text-[0.7rem] font-bold uppercase">
                         {job.period}
-                      </span>
+                      </Sticker>
                       <h3 className="mt-4 font-display text-2xl leading-tight tracking-wide uppercase">
                         {job.role}
                       </h3>

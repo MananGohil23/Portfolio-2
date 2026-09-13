@@ -2,6 +2,7 @@ import { isPlaceholder, profile, stats } from '../data/resume'
 import PaperCard from './PaperCard'
 import Reveal from './Reveal'
 import Slot from './Slot'
+import Sticker from './Sticker'
 import { DoodleArrow, DoodleSplash, DoodleStar, Scribble } from './SvgDefs'
 
 export default function Hero() {
@@ -17,9 +18,9 @@ export default function Hero() {
         {/* ---------------- copy ---------------- */}
         <div className="relative">
           <Reveal tilt={-1}>
-            <span className="sticker torn-flat -rotate-2 bg-mustard text-xs font-bold tracking-[0.2em] uppercase">
+            <Sticker tone="mustard" className="-rotate-2 text-xs font-bold tracking-[0.2em] uppercase">
               ● {profile.available}
-            </span>
+            </Sticker>
           </Reveal>
 
           <Reveal delay={80}>
@@ -63,14 +64,15 @@ export default function Hero() {
 
           <Reveal delay={320} className="mt-10 flex flex-wrap gap-3">
             {stats.map((s, i) => (
-              <span
+              <Sticker
                 key={s.label}
-                className="sticker torn-flat text-sm"
+                tone="paper"
+                className="text-sm"
                 style={{ transform: `rotate(${i % 2 === 0 ? -3 : 2}deg)` }}
               >
                 <b className="font-display text-lg">{s.value}</b>
                 <span className="text-xs tracking-wide text-ink-soft uppercase">{s.label}</span>
-              </span>
+              </Sticker>
             ))}
           </Reveal>
         </div>
@@ -106,9 +108,9 @@ export default function Hero() {
             </p>
           </PaperCard>
 
-          <span className="sticker torn-flat animate-wiggle absolute -right-3 -bottom-4 -rotate-6 bg-teal text-xs font-bold text-paper uppercase">
+          <Sticker tone="teal" className="animate-wiggle absolute -right-3 -bottom-4 -rotate-6 text-xs font-bold uppercase">
             CSE · Data Science
-          </span>
+          </Sticker>
         </Reveal>
       </div>
     </section>

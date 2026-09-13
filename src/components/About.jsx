@@ -2,6 +2,7 @@ import { education, profile } from '../data/resume'
 import PaperCard from './PaperCard'
 import Reveal from './Reveal'
 import SectionHeading from './SectionHeading'
+import Sticker from './Sticker'
 import { DoodleStar } from './SvgDefs'
 
 export default function About() {
@@ -26,15 +27,15 @@ export default function About() {
               </div>
 
               <div className="mt-8 flex flex-wrap gap-3">
-                <span className="sticker torn-flat -rotate-2 bg-coral text-xs font-bold text-paper uppercase">
+                <Sticker tone="coral" className="-rotate-2 text-xs font-bold uppercase">
                   📍 {profile.location}
-                </span>
-                <span className="sticker torn-flat rotate-1 bg-cobalt text-xs font-bold text-paper uppercase">
+                </Sticker>
+                <Sticker tone="cobalt" className="rotate-1 text-xs font-bold uppercase">
                   🎓 Class of 2029
-                </span>
-                <span className="sticker torn-flat -rotate-1 bg-teal text-xs font-bold text-paper uppercase">
+                </Sticker>
+                <Sticker tone="teal" className="-rotate-1 text-xs font-bold uppercase">
                   ✦ {profile.available}
-                </span>
+                </Sticker>
               </div>
             </PaperCard>
           </Reveal>
@@ -51,9 +52,9 @@ export default function About() {
                       <h4 className="font-display text-xl tracking-wide uppercase">{edu.degree}</h4>
                       <p className="mt-1 font-semibold text-ink-soft">{edu.school}</p>
                     </div>
-                    <span className="sticker torn-flat shrink-0 bg-ink text-[0.7rem] font-bold text-paper uppercase">
+                    <Sticker tone="ink" className="shrink-0 text-[0.7rem] font-bold uppercase">
                       {edu.period}
-                    </span>
+                    </Sticker>
                   </div>
                   <p className="mt-3 border-t border-dashed border-ink/25 pt-3 font-mono text-sm text-ink-soft">
                     {edu.detail}

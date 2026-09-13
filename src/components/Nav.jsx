@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { nav, profile } from '../data/resume'
+import PaperCard from './PaperCard'
 import Slot from './Slot'
 
 export default function Nav() {
@@ -30,7 +31,7 @@ export default function Nav() {
         }`}
       >
         <a href="#top" className="group flex items-center gap-3">
-          <span className="stamp torn-flat grid h-11 w-11 place-items-center bg-coral font-display text-lg text-paper transition-transform group-hover:-rotate-6">
+          <span className="stamp grid h-11 w-11 place-items-center bg-coral font-display text-lg text-paper transition-transform group-hover:-rotate-6">
             {profile.initials}
           </span>
           <span className="hidden font-display text-xl tracking-wide uppercase sm:block">
@@ -78,7 +79,7 @@ export default function Nav() {
 
       {open && (
         <div className="relative z-10 mx-4 md:hidden">
-          <div className="paper torn-md grain relative p-4">
+          <PaperCard torn="md" className="grain p-4">
             <ul className="grid gap-1">
               {nav.map((item) => (
                 <li key={item.href}>
@@ -92,7 +93,7 @@ export default function Nav() {
                 </li>
               ))}
             </ul>
-          </div>
+          </PaperCard>
         </div>
       )}
     </header>

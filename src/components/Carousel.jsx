@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Sticker from './Sticker'
 
 const DOT = {
   mustard: 'bg-mustard',
@@ -89,9 +90,9 @@ export default function Carousel({ images, alt = 'Project screenshot', accent = 
       </div>
 
       {/* counter */}
-      <span className="sticker torn-flat absolute top-3 right-3 bg-paper/90 text-[0.7rem] font-bold tracking-widest">
+      <Sticker tone="paper" className="absolute top-3 right-3 text-[0.7rem] font-bold tracking-widest">
         {index + 1} / {count}
-      </span>
+      </Sticker>
 
       {multiple && (
         <>

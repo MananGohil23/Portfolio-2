@@ -4,6 +4,7 @@ import PaperCard from './PaperCard'
 import Reveal from './Reveal'
 import SectionHeading from './SectionHeading'
 import Slot from './Slot'
+import Sticker from './Sticker'
 import { DoodleArrow } from './SvgDefs'
 
 const ACCENT = {
@@ -46,14 +47,15 @@ function ProjectCard({ project, index }) {
               className="absolute inset-0 h-full w-full justify-center text-base"
             />
           )}
-          <span
-            className={`sticker torn-flat absolute top-3 left-3 -rotate-3 ${accent.chip} text-[0.7rem] font-bold tracking-wide uppercase`}
+          <Sticker
+            tone={project.accent}
+            className="absolute top-3 left-3 -rotate-3 text-[0.7rem] font-bold tracking-wide uppercase"
           >
             {project.context}
-          </span>
-          <span className="sticker torn-flat absolute bottom-3 left-3 -rotate-2 bg-paper text-[0.7rem] font-bold uppercase">
+          </Sticker>
+          <Sticker tone="paper" className="absolute bottom-3 left-3 -rotate-2 text-[0.7rem] font-bold uppercase">
             {project.year}
-          </span>
+          </Sticker>
         </div>
 
         {/* body */}
@@ -76,12 +78,9 @@ function ProjectCard({ project, index }) {
 
           <div className="mt-6 flex flex-wrap gap-2">
             {project.tags.map((tag) => (
-              <span
-                key={tag}
-                className="sticker torn-flat border border-ink/15 text-xs font-semibold"
-              >
+              <Sticker key={tag} tone="paper" layerClassName="border border-ink/15" className="text-xs font-semibold">
                 {tag}
-              </span>
+              </Sticker>
             ))}
           </div>
 

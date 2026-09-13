@@ -2,6 +2,7 @@ import { skillGroups } from '../data/resume'
 import PaperCard from './PaperCard'
 import Reveal from './Reveal'
 import SectionHeading from './SectionHeading'
+import Sticker from './Sticker'
 import { DoodleSquiggle } from './SvgDefs'
 
 const ACCENT = {
@@ -35,9 +36,9 @@ export default function Skills() {
                 <ul className="mt-5 flex flex-wrap gap-2">
                   {group.items.map((item) => (
                     <li key={item}>
-                      <span className="sticker torn-flat border border-ink/15 text-sm">
+                      <Sticker tone="paper" layerClassName="border border-ink/15" className="text-sm">
                         {item}
-                      </span>
+                      </Sticker>
                     </li>
                   ))}
                 </ul>

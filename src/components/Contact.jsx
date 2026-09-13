@@ -3,6 +3,7 @@ import PaperCard from './PaperCard'
 import Reveal from './Reveal'
 import SectionHeading from './SectionHeading'
 import Slot from './Slot'
+import Sticker from './Sticker'
 import { DoodleArrow, DoodleStar } from './SvgDefs'
 
 export default function Contact() {
@@ -50,33 +51,39 @@ export default function Contact() {
             </div>
 
             <div className="mt-10 flex flex-wrap justify-center gap-3">
-              <a
+              <Sticker
+                as="a"
                 href={contact.linkedin}
                 target="_blank"
                 rel="noreferrer"
-                className="sticker torn-flat -rotate-2 bg-cobalt text-sm font-bold text-paper"
+                tone="cobalt"
+                className="-rotate-2 text-sm font-bold"
               >
                 in · {contact.linkedinLabel}
-              </a>
-              <a
+              </Sticker>
+              <Sticker
+                as="a"
                 href={contact.github}
                 target="_blank"
                 rel="noreferrer"
-                className="sticker torn-flat rotate-1 bg-ink text-sm font-bold text-paper"
+                tone="ink"
+                className="rotate-1 text-sm font-bold"
               >
                 ⌂ {contact.githubLabel}
-              </a>
+              </Sticker>
               {contact.twitter === 'TODO' ? (
                 <Slot value={contact.twitter} label="add X / twitter" />
               ) : (
-                <a
+                <Sticker
+                  as="a"
                   href={contact.twitter}
                   target="_blank"
                   rel="noreferrer"
-                  className="sticker torn-flat -rotate-1 bg-plum text-sm font-bold text-paper"
+                  tone="plum"
+                  className="-rotate-1 text-sm font-bold"
                 >
                   ✕ {contact.twitterLabel}
-                </a>
+                </Sticker>
               )}
             </div>
 
