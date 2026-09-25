@@ -1,4 +1,5 @@
 import { contact, profile } from '../data/resume'
+import ContactForm from './ContactForm'
 import PaperCard from './PaperCard'
 import Reveal from './Reveal'
 import SectionHeading from './SectionHeading'
@@ -35,20 +36,7 @@ export default function Contact() {
               Say hello
             </h3>
 
-            <div className="mt-8 flex flex-wrap justify-center gap-4">
-              <a
-                href={`mailto:${contact.email}`}
-                className="stamp bg-coral px-6 py-3 text-sm font-bold tracking-widest text-paper uppercase transition-transform hover:-translate-y-1"
-              >
-                Email me ↗
-              </a>
-              <a
-                href={contact.phoneHref}
-                className="stamp bg-paper px-6 py-3 text-sm font-bold tracking-widest uppercase transition-transform hover:-translate-y-1"
-              >
-                {contact.phone}
-              </a>
-            </div>
+            <ContactForm />
 
             <div className="mt-10 flex flex-wrap justify-center gap-3">
               <Sticker
@@ -87,8 +75,14 @@ export default function Contact() {
               )}
             </div>
 
-            <p className="mt-10 font-mono text-xs tracking-widest text-ink-soft uppercase">
-              {contact.email}
+            <p className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 font-mono text-xs tracking-widest text-ink-soft uppercase">
+              <a href={`mailto:${contact.email}`} className="transition-colors hover:text-coral">
+                {contact.email}
+              </a>
+              <span aria-hidden="true">✦</span>
+              <a href={contact.phoneHref} className="transition-colors hover:text-coral">
+                {contact.phone}
+              </a>
             </p>
           </PaperCard>
         </Reveal>

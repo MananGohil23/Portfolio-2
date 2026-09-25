@@ -43,6 +43,7 @@ export const contact = {
   githubLabel: 'github.com/MananGohil23',
   twitter: 'https://x.com/MananGohil19',
   twitterLabel: '@MananGohil19',
+  formEndpoint: 'https://formspree.io/f/mljdlvdw',
 }
 
 export const stats = [

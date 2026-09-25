@@ -18,7 +18,7 @@ export default function Marquee({ items, className = '', tilt = -1.5, tone = 'in
       >
         <div
           aria-hidden="true"
-          className="torn-sm grain absolute inset-0"
+          className="torn-md grain absolute inset-0"
           style={{ backgroundColor: bg }}
         />
         <div className="relative z-10 overflow-hidden py-4">

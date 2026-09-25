@@ -1,8 +1,10 @@
+import { useEffect, useRef } from 'react'
 import { experience } from '../data/resume'
 import PaperCard from './PaperCard'
 import Reveal from './Reveal'
 import SectionHeading from './SectionHeading'
 import Sticker from './Sticker'
+import useInView from './useInView'
 
 const DOT = {
   coral: 'bg-coral',
@@ -12,7 +14,57 @@ const DOT = {
   plum: 'bg-plum',
 }
 
+function TimelineNode({ accent }) {
+  const [ref, inView] = useInView()
+
+  return (
+    <span
+      ref={ref}
+      aria-hidden="true"
+      className={`absolute top-8 left-4 z-20 h-4 w-4 origin-center -translate-x-1/2 rotate-45 border-2 border-ink transition-[scale] duration-500 ease-out lg:left-1/2 ${
+        DOT[accent] ?? DOT.coral
+      } ${inView ? 'scale-100' : 'scale-0'}`}
+    />
+  )
+}
+
 export default function Experience() {
+  const timelineRef = useRef(null)
+  const fillRef = useRef(null)
+
+  // draw the spine down as the timeline scrolls through the viewport
+  useEffect(() => {
+    const node = timelineRef.current
+    const fill = fillRef.current
+    if (!node || !fill) return undefined
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      fill.style.transform = 'scaleY(1)'
+      return undefined
+    }
+
+    let frame = 0
+    const update = () => {
+      frame = 0
+      const rect = node.getBoundingClientRect()
+      const line = window.innerHeight * 0.62
+      const progress = Math.min(1, Math.max(0, (line - rect.top) / (rect.height || 1)))
+      fill.style.transform = `scaleY(${progress})`
+    }
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update)
+    }
+
+    update()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      if (frame) cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [])
+
   return (
     <section id="experience" className="relative px-4 py-20 sm:px-6">
       <div className="mx-auto max-w-5xl">
@@ -23,11 +75,18 @@ export default function Experience() {
           accent="teal"
         />
 
-        <div className="relative">
-          {/* hand-drawn spine */}
+        <div className="relative" ref={timelineRef}>
+          {/* dashed guide */}
           <span
             aria-hidden="true"
-            className="absolute top-2 bottom-2 left-4 w-0 border-l-4 border-dashed border-ink/30 lg:left-1/2 lg:-translate-x-1/2"
+            className="absolute top-2 bottom-2 left-4 w-0 border-l-4 border-dashed border-ink/25 lg:left-1/2 lg:-translate-x-1/2"
+          />
+          {/* ink drawn down over the guide as you scroll */}
+          <span
+            ref={fillRef}
+            aria-hidden="true"
+            style={{ transform: 'scaleY(0)' }}
+            className="absolute top-2 bottom-2 left-4 w-0 origin-top border-l-4 border-solid border-ink will-change-transform lg:left-1/2 lg:-translate-x-1/2"
           />
 
           <ul className="grid gap-12">
@@ -35,13 +94,7 @@ export default function Experience() {
               const right = i % 2 === 1
               return (
                 <li key={job.role} className="relative">
-                  {/* timeline node */}
-                  <span
-                    aria-hidden="true"
-                    className={`absolute top-8 left-4 z-20 h-4 w-4 -translate-x-1/2 rotate-45 border-2 border-ink ${
-                      DOT[job.accent] ?? DOT.coral
-                    } lg:left-1/2`}
-                  />
+                  <TimelineNode accent={job.accent} />
 
                   <Reveal
                     tilt={right ? 1.5 : -1.5}
