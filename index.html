@@ -9,6 +9,19 @@
       content="Manan Gohil — Computer Science (Data Science) student building AI, data and web projects."
     />
     <meta name="theme-color" content="#f3ead6" />
+    <script>
+      // Set the theme before first paint to avoid a flash. Falls back to the
+      // OS preference until the visitor picks a side (then we remember it).
+      ;(function () {
+        try {
+          var saved = localStorage.getItem('theme')
+          var night = saved ? saved === 'night' : window.matchMedia('(prefers-color-scheme: dark)').matches
+          document.documentElement.setAttribute('data-theme', night ? 'night' : 'day')
+          var meta = document.querySelector('meta[name="theme-color"]')
+          if (meta) meta.setAttribute('content', night ? '#1c1916' : '#f3ead6')
+        } catch (e) {}
+      })()
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

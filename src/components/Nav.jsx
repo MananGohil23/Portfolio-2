@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { nav, profile } from '../data/resume'
 import PaperCard from './PaperCard'
 import Slot from './Slot'
+import ThemeToggle from './ThemeToggle'
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false)
@@ -64,6 +65,8 @@ export default function Nav() {
           ) : (
             <Slot value={profile.resumeFile} label="resume.pdf" className="hidden sm:inline-flex" />
           )}
+
+          <ThemeToggle />
 
           <button
             type="button"

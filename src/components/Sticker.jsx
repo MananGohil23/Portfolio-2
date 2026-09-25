@@ -2,7 +2,8 @@ const TONE = {
   paper: { layer: 'bg-paper', text: 'text-ink' },
   ink: { layer: 'bg-ink', text: 'text-paper' },
   coral: { layer: 'bg-coral', text: 'text-paper' },
-  mustard: { layer: 'bg-mustard', text: 'text-ink' },
+  // fixed dark text keeps contrast on bright mustard in both themes
+  mustard: { layer: 'bg-mustard', text: 'text-[#2b1d06]' },
   cobalt: { layer: 'bg-cobalt', text: 'text-paper' },
   teal: { layer: 'bg-teal', text: 'text-paper' },
   plum: { layer: 'bg-plum', text: 'text-paper' },

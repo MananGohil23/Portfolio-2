@@ -2,8 +2,21 @@ import { useEffect, useRef, useState } from 'react'
 
 const TEXT = 'input, textarea, select, [contenteditable="true"]'
 
-// graphite = --color-ink-soft, as an "r, g, b" string for canvas rgba()
-const GRAPHITE = '74, 70, 61'
+// trail shape
+const TRAIL_LIFE = 850 // ms a point stays in the tail
+const MIN_POINTS = 6 // always-visible stub, even while idle
+const MAX_POINTS = 220 // hard cap so a fast fling can't build a huge path
+const SMUDGE_LIFE = 1100 // ms a click smudge lives
+
+// appearance lives in CSS so it can flip with the day/night theme:
+//   --cursor-graphite  "r, g, b" for canvas rgba()
+//   --cursor-trail     deposit-strength multiplier (light paper needs more)
+const cssVar = (el, name) => getComputedStyle(el).getPropertyValue(name).trim()
+
+const readTrailStyle = (root) => ({
+  graphite: cssVar(root, '--cursor-graphite') || '74, 70, 61',
+  strength: Number.parseFloat(cssVar(root, '--cursor-trail')) || 1,
+})
 
 const isEnabled = () =>
   typeof window !== 'undefined' &&
@@ -11,18 +24,18 @@ const isEnabled = () =>
   !window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 /**
- * Pencil cursor that leaves a decaying graphite trail.
+ * Pencil cursor that leaves a graphite trail.
  *
- * - A hand-drawn pencil SVG (tip anchored to the pointer) tilts as it moves.
- * - The trail lives on a fixed <canvas>. Each animation frame the previous
- *   stroke is faded with `destination-out` and a new three-line "sketch" pass
- *   is drawn between the last and current pointer position. Slower movement
- *   presses darker/wider; faster movement leaves a lighter, thinner stroke.
- * - Clicking leaves a small graphite smudge. Jumps (e.g. returning from
- *   another tab) are skipped so no long straight line is drawn.
+ * The trail is redrawn from scratch every frame (clearRect + a bounded, aged
+ * point list) rather than faded with `destination-out`. That avoids the
+ * canvas residue trap — a low-alpha erase leaves pixels stuck at 1/255 that
+ * accumulate into a permanent scribble (very obvious as light-on-dark).
  *
- * Disabled on touch devices and for `prefers-reduced-motion`, and the native
- * I-beam is kept over editable fields.
+ * Each point is pushed once per frame; points older than TRAIL_LIFE are
+ * dropped, but the newest MIN_POINTS always remain, so a short tail is always
+ * visible. Segments taper and scale by the theme's `--cursor-trail` strength.
+ * Disabled on touch and for `prefers-reduced-motion`; the native I-beam is
+ * kept over editable fields.
  */
 export default function Cursor() {
   const wrapRef = useRef(null)
@@ -54,21 +67,27 @@ export default function Cursor() {
     }
     size()
 
+    let { graphite, strength } = readTrailStyle(root)
+    const themeObserver = new MutationObserver(() => {
+      ;({ graphite, strength } = readTrailStyle(root))
+    })
+    themeObserver.observe(root, { attributes: true, attributeFilter: ['data-theme'] })
+
     const pointer = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
-    let last = null
+    const points = []
+    const smudges = []
     let frame = 0
     let paused = false
 
-    // three offset passes read as a sketched, graphite "line"
-    const stroke = (from, to, dist) => {
-      if (!ctx) return
+    // a hand-sketched stroke: wide soft smear + three thin offset passes
+    const drawSegment = (from, to, taper) => {
+      const dist = Math.hypot(to.x - from.x, to.y - from.y)
+      if (dist < 0.01) return
       const width = Math.max(0.5, 2 - dist * 0.05)
-      const dx = to.x - from.x
-      const dy = to.y - from.y
-      const len = Math.max(dist, 0.001)
-      const nx = -dy / len
-      const ny = dx / len
+      const nx = -(to.y - from.y) / dist
+      const ny = (to.x - from.x) / dist
       const passes = [
+        { off: 0, alpha: 0.05, width: width * 3.2 },
         { off: -1, alpha: 0.2, width: width * 0.7 },
         { off: 0, alpha: 0.5, width },
         { off: 1, alpha: 0.2, width: width * 0.7 },
@@ -76,7 +95,9 @@ export default function Cursor() {
       ctx.lineCap = 'round'
       ctx.lineJoin = 'round'
       for (const pass of passes) {
-        ctx.strokeStyle = `rgba(${GRAPHITE}, ${pass.alpha})`
+        const alpha = Math.min(1, pass.alpha * taper * strength)
+        if (alpha <= 0) continue
+        ctx.strokeStyle = `rgba(${graphite}, ${alpha})`
         ctx.lineWidth = pass.width
         ctx.beginPath()
         ctx.moveTo(from.x + nx * pass.off, from.y + ny * pass.off)
@@ -89,29 +110,48 @@ export default function Cursor() {
       frame = requestAnimationFrame(tick)
       if (paused) return
 
-      // fade the existing trail
-      if (ctx) {
-        ctx.globalCompositeOperation = 'destination-out'
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'
-        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
-        ctx.globalCompositeOperation = 'source-over'
-      }
+      const now = performance.now()
 
       if (wrapRef.current) {
         wrapRef.current.style.transform = `translate3d(${pointer.x}px, ${pointer.y}px, 0)`
       }
 
-      if (!last) {
-        last = { x: pointer.x, y: pointer.y }
-        return
-      }
+      if (ctx) {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight)
 
-      const dist = Math.hypot(pointer.x - last.x, pointer.y - last.y)
-      if (dist > 0.01 && dist < 180 && visibleRef.current && !textModeRef.current) {
-        stroke(last, pointer, dist)
+        if (visibleRef.current && !textModeRef.current) {
+          const head = points[points.length - 1]
+          if (!head || head.x !== pointer.x || head.y !== pointer.y) {
+            points.push({ x: pointer.x, y: pointer.y, t: now })
+          }
+        }
+
+        // age out old points, but never below the always-visible stub
+        while (points.length > MIN_POINTS && now - points[0].t > TRAIL_LIFE) points.shift()
+        if (points.length > MAX_POINTS) points.splice(0, points.length - MAX_POINTS)
+
+        // draw the tail newest → oldest so fresh graphite sits on top
+        for (let i = points.length - 1; i > 0; i -= 1) {
+          const taper = 0.18 + 0.82 * (i / (points.length - 1))
+          drawSegment(points[i - 1], points[i], taper)
+        }
+
+        // click smudges
+        for (let i = smudges.length - 1; i >= 0; i -= 1) {
+          const smudge = smudges[i]
+          const life = 1 - (now - smudge.t) / SMUDGE_LIFE
+          if (life <= 0) {
+            smudges.splice(i, 1)
+            continue
+          }
+          ctx.fillStyle = `rgba(${graphite}, ${0.32 * life * strength})`
+          for (const dot of smudge.dots) {
+            ctx.beginPath()
+            ctx.arc(smudge.x + Math.cos(dot.a) * dot.r, smudge.y + Math.sin(dot.a) * dot.r, dot.size, 0, Math.PI * 2)
+            ctx.fill()
+          }
+        }
       }
-      last.x = pointer.x
-      last.y = pointer.y
     }
     frame = requestAnimationFrame(tick)
 
@@ -121,7 +161,7 @@ export default function Cursor() {
       if (!visibleRef.current) {
         visibleRef.current = true
         setVisible(true)
-        last = { x: pointer.x, y: pointer.y }
+        points.length = 0 // don't draw a line from wherever we last were
       }
       const el = event.target instanceof Element ? event.target : null
       const nextText = Boolean(el?.closest(TEXT))
@@ -133,21 +173,17 @@ export default function Cursor() {
 
     const onDown = (event) => {
       setPressed(true)
-      if (!ctx || !visibleRef.current || textModeRef.current) return
-      ctx.fillStyle = `rgba(${GRAPHITE}, 0.32)`
-      for (let i = 0; i < 7; i += 1) {
-        const angle = Math.random() * Math.PI * 2
-        const radius = Math.random() * 3.4
-        ctx.beginPath()
-        ctx.arc(
-          event.clientX + Math.cos(angle) * radius,
-          event.clientY + Math.sin(angle) * radius,
-          1 + Math.random() * 0.9,
-          0,
-          Math.PI * 2,
-        )
-        ctx.fill()
-      }
+      if (!visibleRef.current || textModeRef.current) return
+      smudges.push({
+        x: event.clientX,
+        y: event.clientY,
+        t: performance.now(),
+        dots: Array.from({ length: 7 }, () => ({
+          a: Math.random() * Math.PI * 2,
+          r: Math.random() * 3.4,
+          size: 1 + Math.random() * 0.9,
+        })),
+      })
     }
 
     const onUp = () => setPressed(false)
@@ -158,6 +194,7 @@ export default function Cursor() {
     const onEnter = () => {
       visibleRef.current = true
       setVisible(true)
+      points.length = 0
     }
     const onVisibility = () => {
       paused = document.hidden
@@ -173,6 +210,7 @@ export default function Cursor() {
 
     return () => {
       cancelAnimationFrame(frame)
+      themeObserver.disconnect()
       root.classList.remove('has-custom-cursor')
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerdown', onDown)
@@ -199,7 +237,7 @@ export default function Cursor() {
           width="20"
           height="44"
           style={{ marginLeft: -10, marginTop: -42 }}
-          className={`origin-[10px_42px] rotate-[35deg] drop-shadow-[1px_3px_2px_rgba(27,26,23,0.35)] transition-[scale,opacity] duration-150 ease-out ${
+          className={`text-ink origin-[10px_42px] rotate-[35deg] drop-shadow-[1px_3px_2px_rgba(27,26,23,0.35)] transition-[scale,opacity] duration-150 ease-out ${
             pressed ? 'scale-[0.88]' : 'scale-100'
           } ${shown ? 'opacity-100' : 'opacity-0'}`}
         >
@@ -232,7 +270,7 @@ export default function Cursor() {
           <path
             d="M8.5 1h3A2.5 2.5 0 0 1 14 3.5V5.5H6V3.5A2.5 2.5 0 0 1 8.5 1Z"
             fill="url(#pc-eraser)"
-            stroke="#1b1a17"
+            stroke="currentColor"
             strokeWidth="1"
             strokeLinejoin="round"
           />
@@ -246,17 +284,17 @@ export default function Cursor() {
           />
 
           {/* metal ferrule */}
-          <path d="M6 5.5h8v4H6z" fill="url(#pc-metal)" stroke="#1b1a17" strokeWidth="1" strokeLinejoin="round" />
-          <path d="M6 6.7h8M6 8.3h8" stroke="#1b1a17" strokeWidth="0.5" opacity="0.4" />
+          <path d="M6 5.5h8v4H6z" fill="url(#pc-metal)" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
+          <path d="M6 6.7h8M6 8.3h8" stroke="currentColor" strokeWidth="0.5" opacity="0.4" />
 
           {/* wooden shaft with hex facets */}
-          <path d="M6 9.5h8v23H6z" fill="url(#pc-wood)" stroke="#1b1a17" strokeWidth="1" strokeLinejoin="round" />
-          <path d="M6 9.5h2.2v23H6z" fill="#1b1a17" opacity="0.14" />
-          <path d="M12 9.5h2v23h-2z" fill="#1b1a17" opacity="0.1" />
+          <path d="M6 9.5h8v23H6z" fill="url(#pc-wood)" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
+          <path d="M6 9.5h2.2v23H6z" fill="currentColor" opacity="0.14" />
+          <path d="M12 9.5h2v23h-2z" fill="currentColor" opacity="0.1" />
           <path d="M8.6 10.4v21.4" stroke="#fff3d6" strokeWidth="0.7" strokeLinecap="round" opacity="0.55" />
 
           {/* sharpened wood cone */}
-          <path d="M6 32.5h8L10 42z" fill="#f2ddb0" stroke="#1b1a17" strokeWidth="1" strokeLinejoin="round" />
+          <path d="M6 32.5h8L10 42z" fill="#f2ddb0" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
           <path d="M10 33.2v7.4" stroke="#c79a4e" strokeWidth="0.7" strokeLinecap="round" opacity="0.6" />
           <path d="M7 33.6l2.2 5.8" stroke="#c79a4e" strokeWidth="0.5" strokeLinecap="round" opacity="0.45" />
 
@@ -264,7 +302,7 @@ export default function Cursor() {
           <path
             d="M7.5 39.4h5L10 42z"
             fill="url(#pc-graphite)"
-            stroke="#1b1a17"
+            stroke="currentColor"
             strokeWidth="0.8"
             strokeLinejoin="round"
           />
