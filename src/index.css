@@ -57,6 +57,10 @@
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    /* rotated "collage" cards and the full-bleed marquee overhang push past the
+       viewport on narrow screens; clamp at the root so mobile can't scroll
+       sideways (body-only clipping is unreliable on mobile Safari) */
+    overflow-x: hidden;
   }
 
   body {
