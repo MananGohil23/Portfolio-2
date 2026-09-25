@@ -60,7 +60,7 @@ export const projects = [
     context: 'Personal Project',
     accent: 'mustard',
     year: '2026',
-    images: ['/edudash1.png', '/edudash2.png', '/edudash3.png', '/edudash4.png'],
+    images: ['/edudash1.png', '/edudash2.png', '/edudash3.png', '/edudash4.png', '/edudash5.png', '/edudash6.png'],
     live: 'https://edu-dash-anb2.vercel.app/',
     repo: 'https://github.com/MananGohil23/EduDash.git',
     tags: ['React 19', 'Node.js', 'Express', 'MongoDB', 'JWT', 'REST APIs'],
